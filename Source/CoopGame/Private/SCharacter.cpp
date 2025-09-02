@@ -2,6 +2,8 @@
 
 
 #include "SCharacter.h"
+
+#include "SWeapon.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
@@ -24,13 +26,28 @@ ASCharacter::ASCharacter()
 
 	//将摄像机组件附加到弹簧臂组件上，这样摄像机就会跟随弹簧臂的位置和旋转
 	CameraComp->SetupAttachment(SpringArmComp);
+
+	WeaponAttachSocketName = "WeaponSocket";
 }
 
 // Called when the game starts or when spawned
 void ASCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	/*
+* 生成默认的武器。
+*/
+	//设置生成参数。
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	//生成当前武器。
+	CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(StarterWeaponClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+	if (CurrentWeapon)
+	{
+		//如果当前武器已经有了，设置武器拥有者为当前玩家，将武器依附到武器插槽。
+		CurrentWeapon->SetOwner(this);
+		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+	}
 }
 
 // Called every frame
@@ -86,6 +103,13 @@ void ASCharacter::BeginCrouch()
 void ASCharacter::EndCrouch()
 {
 	UnCrouch();
+}
+
+
+FVector ASCharacter::GetPawnViewLocation() const
+{
+	if (CameraComp) return CameraComp->GetComponentLocation();
+	return Super::GetPawnViewLocation();
 }
 
 

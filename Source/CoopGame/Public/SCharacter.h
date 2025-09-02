@@ -42,4 +42,19 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class USpringArmComponent* SpringArmComp;
 
+public:
+	//当前武器类
+	UPROPERTY(BlueprintReadOnly)
+	class ASWeapon* CurrentWeapon;
+
+	//需要生成并添加给角色的武器类
+	UPROPERTY(EditDefaultsOnly, Category = "Player")
+	TSubclassOf<ASWeapon> StarterWeaponClass;
+
+	//用来放武器的插槽名
+	UPROPERTY(VisibleDefaultsOnly, Category = "Player")
+	FName WeaponAttachSocketName;
+
+	virtual FVector GetPawnViewLocation() const override;	
+	
 };
