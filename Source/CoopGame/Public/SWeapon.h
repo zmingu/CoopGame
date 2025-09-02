@@ -47,12 +47,14 @@ public:
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category="Weapon")
 	class UParticleSystem* MuzzleEffect;
 
-	//击中特效
-	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category="Weapon")
-	class UParticleSystem* ImpactEffect;
-
+	//击中特效——击中东西的默认特效
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	UParticleSystem* DefaultImpactEffect;
 	
-
+	//击中特效——击中人的飙血特效
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	UParticleSystem* FleshImpactEffect;
+	
 	//弹道特效
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	UParticleSystem* TracerEffect;
@@ -61,4 +63,34 @@ public:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FName TracerTargetName;
 
+	
+
+protected:
+	//镜头震动类
+	UPROPERTY(EditDefaultsOnly,Category="Weapon")
+	TSubclassOf<class UCameraShakeBase> FireCamShake;
+
+	//声明两个特效播放函数。
+	void PlayFireEffects(FVector TraceEnd);//枪口和弹道特效
+	void PlayImpactEffects(FHitResult Hit);//受击特效
+
+	//基础伤害值
+	UPROPERTY(EditDefaultsOnly,Category="Weapon")
+	float BaseDamage;
+
+	/*连发开火*/
+	//连发间隔时间句柄
+	FTimerHandle TimerHandle_TimeBetweenShots;
+	//上次开火时间
+	float LastFireTime;
+	//开火频率——每分钟多少枪
+	UPROPERTY(EditDefaultsOnly, Category="Weapon")
+	float RateOfFire;
+	//两枪之前的时间——分钟
+	float TimeBetweenShots;
+
+public:
+	//开始和停止开火函数
+	void StartFire();
+	void StopFire();
 };

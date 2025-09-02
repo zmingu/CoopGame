@@ -6,10 +6,15 @@
 #include "SWeapon.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "CoopGame/CoopGame.h"
+#include "Components/CapsuleComponent.h"
 
 // Sets default values
 ASCharacter::ASCharacter()
 {
+	//武器碰撞通道忽略角色胶囊体
+	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISION_WEAPON,ECR_Ignore);
+	
 	PrimaryActorTick.bCanEverTick = true;
 	
 	//创建一个默认子对象，命名为SpringArmComp，类型为USpringArmComponent
@@ -28,6 +33,13 @@ ASCharacter::ASCharacter()
 	CameraComp->SetupAttachment(SpringArmComp);
 
 	WeaponAttachSocketName = "WeaponSocket";
+
+	ZoomedFOV = 65;
+	
+	//设置默认插值速度
+	ZoomInterpSpeed = 20;
+
+	
 }
 
 // Called when the game starts or when spawned
@@ -48,12 +60,19 @@ void ASCharacter::BeginPlay()
 		CurrentWeapon->SetOwner(this);
 		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
 	}
+
+	DefaultFOV = CameraComp->FieldOfView;
 }
 
 // Called every frame
 void ASCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	//不断判断是否开镜，是则设置当前视场为开镜后的视场，否者默认。
+	float CurrentFOV = bWantsToZoom ? ZoomedFOV : DefaultFOV;
+	//使用数学函数插值浮点从当前值到目标值，既默认视角到目标视角过度。
+	float NewFOV = FMath::FInterpTo(DefaultFOV, CurrentFOV, DeltaTime, ZoomInterpSpeed);
+	CameraComp->SetFieldOfView(NewFOV);
 
 }
 
@@ -78,7 +97,11 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Jump",IE_Pressed,this,&ASCharacter::Jump);
 	PlayerInputComponent->BindAction("Jump",IE_Released,this,&ASCharacter::StopJumping);
 
-	
+	PlayerInputComponent->BindAction("Zoom",IE_Pressed,this,&ASCharacter::BeginZoom);
+	PlayerInputComponent->BindAction("Zoom",IE_Released,this,&ASCharacter::EndZoom);
+
+	PlayerInputComponent->BindAction("ToFire",IE_Pressed,this,&ASCharacter::ToFire);
+	PlayerInputComponent->BindAction("ToFire",IE_Released,this,&ASCharacter::StopFire);
 }
 
 void ASCharacter::MoveForward(float Value)
@@ -110,6 +133,27 @@ FVector ASCharacter::GetPawnViewLocation() const
 {
 	if (CameraComp) return CameraComp->GetComponentLocation();
 	return Super::GetPawnViewLocation();
+}
+
+void ASCharacter::BeginZoom()
+{
+	bWantsToZoom = true;
+}
+
+void ASCharacter::EndZoom()
+{
+	bWantsToZoom = false;
+}
+
+void ASCharacter::ToFire()
+{
+	//调用武器的开火函数
+	if (CurrentWeapon) CurrentWeapon->StartFire();
+}
+
+void ASCharacter::StopFire()
+{
+	if (CurrentWeapon) CurrentWeapon->StopFire();
 }
 
 

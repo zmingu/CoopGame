@@ -55,6 +55,32 @@ public:
 	UPROPERTY(VisibleDefaultsOnly, Category = "Player")
 	FName WeaponAttachSocketName;
 
-	virtual FVector GetPawnViewLocation() const override;	
+	virtual FVector GetPawnViewLocation() const override;
+
+	
+
+	//开镜后的视角大小
+	UPROPERTY(EditDefaultsOnly,Category="Player")
+	float ZoomedFOV;
+
+	//是否开镜
+	bool bWantsToZoom;
+
+	//默认视角大小
+	float DefaultFOV;
+
+	//开始开镜函数
+	void BeginZoom();
+	//结束开镜函数
+	void EndZoom();
+	
+	//视场平滑速度
+	UPROPERTY(EditDefaultsOnly,Category="Player")
+	float ZoomInterpSpeed;
+
+	//角色开枪函数
+	void ToFire();
+	//角色停止开枪函数
+	void StopFire();
 	
 };
