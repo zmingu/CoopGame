@@ -44,12 +44,12 @@ protected:
 
 public:
 	//当前武器类
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Player")
 	class ASWeapon* CurrentWeapon;
 
 	//需要生成并添加给角色的武器类
 	UPROPERTY(EditDefaultsOnly, Category = "Player")
-	TSubclassOf<ASWeapon> StarterWeaponClass;
+	TSubclassOf<ASWeapon> StartWeaponClass;
 
 	//用来放武器的插槽名
 	UPROPERTY(VisibleDefaultsOnly, Category = "Player")
@@ -82,5 +82,20 @@ public:
 	void ToFire();
 	//角色停止开枪函数
 	void StopFire();
+
+	//添加刚刚创建的生命组件
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")
+	class USHealthComponent* HealthComp;
+	
+	//生命值更新函数
+	UFUNCTION()
+	void OnCharacterHealthChanged(class USHealthComponent* OwningHealthComp,float Health,float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser );
+	
+	//角色是否死亡，这个布尔值可以用于在角色蓝图判断角色是否死亡。
+	UPROPERTY(Replicated,BlueprintReadOnly, Category = "Player")
+	bool bDied;
+
+	// //重写同步函数
+	virtual void GetLifetimeReplicatedProps( TArray< class FLifetimeProperty > & OutLifetimeProps ) const override;
 	
 };

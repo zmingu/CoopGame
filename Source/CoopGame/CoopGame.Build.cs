@@ -11,7 +11,9 @@ public class CoopGame : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore","PhysicsCore" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
-
+		
+		// PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "NavigationSystem", "PhysicsCore", "DeveloperSettings" });
+		
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 		

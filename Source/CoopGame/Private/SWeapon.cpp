@@ -8,6 +8,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "CoopGame/CoopGame.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 ASWeapon::ASWeapon()
@@ -23,6 +24,13 @@ ASWeapon::ASWeapon()
 
 	//每分钟开600枪
 	RateOfFire = 600;
+
+	//设置武器可复制
+	SetReplicates(true);
+	
+	//网络参数，改善延迟
+	NetUpdateFrequency = 66;
+	MinNetUpdateFrequency = 33;
 }
 
 // Called when the game starts or when spawned
@@ -87,7 +95,17 @@ void ASWeapon::Fire()
 		}
 		//播放枪口和弹道特效
 		PlayFireEffects(TraceEnd);
+
+		//如果是服务端上的角色调用Fire()函数到这里，就把弹道终点和打击信息赋值到结构体。
+		if (GetLocalRole() == ROLE_Authority)
+		{
+			HitScanTrace.TraceTo = TraceEnd;
+			HitScanTrace.Hit = Hit;
+		}
 	}
+	//如果是服务端上的角色调用Fire()函数到这里，就让服务器角色调用ServerFire();
+	//也就是当我们操作客户端角色，按下左键调用开火函数的时候，会先执行客户端角色的开火函数，然后再调用服务器端角色的开火函数
+	if (GetLocalRole() < ROLE_Authority) ServerFire();
 }
 
 void ASWeapon::PlayFireEffects(FVector TraceEnd)
@@ -170,3 +188,28 @@ void ASWeapon::StopFire()
 	GetWorldTimerManager().ClearTimer(TimerHandle_TimeBetweenShots);
 }
 
+void ASWeapon::ServerFire_Implementation()
+{
+	//服务器端调用开火函数
+	Fire();
+}
+
+bool ASWeapon::ServerFire_Validate()
+{
+	//这里可以添加一些验证代码，比如检查弹药数量等，这里直接验证通过
+	return true;
+}
+
+void ASWeapon::OnRep_HitScanTrace()
+{
+	//当结构体的值改变时，播放特效复制到客户端中的角色
+	PlayFireEffects(HitScanTrace.TraceTo);
+	PlayImpactEffects(HitScanTrace.Hit);
+	
+}
+
+void ASWeapon::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME_CONDITION(ASWeapon,HitScanTrace,COND_SkipOwner);//结构体的同步条件:跳过拥有者（既服务端角色）
+}

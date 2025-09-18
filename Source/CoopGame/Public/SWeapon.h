@@ -6,6 +6,19 @@
 #include "GameFramework/Actor.h"
 #include "SWeapon.generated.h"
 
+USTRUCT()
+struct FHitScanTrace
+{
+	GENERATED_BODY()
+	
+	UPROPERTY()
+	FHitResult Hit;
+	
+	UPROPERTY()
+	FVector_NetQuantize TraceTo;
+};
+
+
 UCLASS()
 class COOPGAME_API ASWeapon : public AActor
 {
@@ -23,12 +36,10 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-
 	
 	//武器的骨骼网格体
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Weapon")
 	class USkeletalMeshComponent* SKMeshComp;
-	
 	
 	//开火函数
 	UFUNCTION(BlueprintCallable,Category="Weapon")
@@ -38,7 +49,6 @@ public:
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category="Weapon")
 	TSubclassOf<UDamageType> DamageType;
 	
-
 	//枪骨骼上的枪口骨骼名
 	UPROPERTY(VisibleDefaultsOnly,BlueprintReadOnly,Category="Weapon")
 	FName MuzzleSocketName;
@@ -93,4 +103,18 @@ public:
 	//开始和停止开火函数
 	void StartFire();
 	void StopFire();
+
+	//服务器开火函数,三个宏分别表示这是一个服务器函数，可靠的RPC，有验证功能
+	UFUNCTION(Server,Reliable,WithValidation)
+	void ServerFire();
+
+	//声明结构体变量和绑定调用时复制的方法，作用：当服务器中的结构体中的变量改变时，就让客户端中的角色调用OnRep_HitScanTrace()函数
+	UPROPERTY(ReplicatedUsing=OnRep_HitScanTrace)
+	FHitScanTrace HitScanTrace;
+
+	UFUNCTION()
+	void OnRep_HitScanTrace();
+
+	//重写同步函数
+	virtual void GetLifetimeReplicatedProps( TArray< class FLifetimeProperty > & OutLifetimeProps ) const override;
 };

@@ -5,9 +5,12 @@
 
 #include "SWeapon.h"
 #include "Camera/CameraComponent.h"
+#include "Component/SHealthComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "CoopGame/CoopGame.h"
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/PawnMovementComponent.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 ASCharacter::ASCharacter()
@@ -38,7 +41,11 @@ ASCharacter::ASCharacter()
 	
 	//设置默认插值速度
 	ZoomInterpSpeed = 20;
+	
+	//创建生命值组件
+	HealthComp = CreateDefaultSubobject<USHealthComponent>(TEXT("HealthComp"));
 
+	
 	
 }
 
@@ -47,21 +54,28 @@ void ASCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	/*
-* 生成默认的武器。
-*/
-	//设置生成参数。
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	//生成当前武器。
-	CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(StarterWeaponClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
-	if (CurrentWeapon)
+	* 生成默认的武器。
+	*/
+	if (GetLocalRole() == ROLE_Authority)//武器只在服务器生成
 	{
-		//如果当前武器已经有了，设置武器拥有者为当前玩家，将武器依附到武器插槽。
-		CurrentWeapon->SetOwner(this);
-		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+		FActorSpawnParameters SpawnParameters;//生成参数
+		SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;//总是生成
+		CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(StartWeaponClass, FVector::ZeroVector, FRotator::ZeroRotator,
+		SpawnParameters);//生成武器Actor并拿到实例
+		if (CurrentWeapon)
+		{
+			CurrentWeapon->SetOwner(this);//设置Actor拥有者为当前角色
+			CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			WeaponAttachSocketName);//将生成的Actor实例附到网格体组件的骨骼插槽名上
+		}
 	}
 
+	//拿到摄像机组件的默认视场,用于后续插值
 	DefaultFOV = CameraComp->FieldOfView;
+
+	//拿到生命组件中的委托对象OnHealthChanged，绑定回调函数为
+	HealthComp->OnHealthChanged.AddDynamic(this,&ASCharacter::OnCharacterHealthChanged);
+	
 }
 
 // Called every frame
@@ -154,6 +168,29 @@ void ASCharacter::ToFire()
 void ASCharacter::StopFire()
 {
 	if (CurrentWeapon) CurrentWeapon->StopFire();
+}
+
+void ASCharacter::OnCharacterHealthChanged(class USHealthComponent* OwningHealthComp, float Health, float HealthDelta,
+	const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
+{
+	if (Health<=0 && !bDied){
+		//当生命值小于0，并且当前状态不是死亡时，设置为死亡状态
+		bDied = true;
+		//运动组件停止运动
+		GetMovementComponent()->StopMovementImmediately();
+		//移除胶囊体所有碰撞
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		//这后面就是播放死亡动画了
+	}
+}
+
+void ASCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	//同步当前武器
+	DOREPLIFETIME(ASCharacter,CurrentWeapon);
+	//同步是否死亡
+	DOREPLIFETIME(ASCharacter,bDied);
 }
 
 
