@@ -74,7 +74,7 @@ void ASCharacter::BeginPlay()
 	DefaultFOV = CameraComp->FieldOfView;
 
 	//拿到生命组件中的委托对象OnHealthChanged，绑定回调函数为
-	HealthComp->OnHealthChanged.AddDynamic(this,&ASCharacter::OnCharacterHealthChanged);
+	HealthComp->OnCompHealthChanged.AddDynamic(this,&ASCharacter::OnCharacterHealthChanged);
 	
 }
 
@@ -173,6 +173,9 @@ void ASCharacter::StopFire()
 void ASCharacter::OnCharacterHealthChanged(class USHealthComponent* OwningHealthComp, float Health, float HealthDelta,
 	const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
 {
+	//打印角色受伤了
+	UE_LOG(LogTemp,Log,TEXT("角色受伤了，当前生命值：%f"),Health);
+	
 	if (Health<=0 && !bDied){
 		//当生命值小于0，并且当前状态不是死亡时，设置为死亡状态
 		bDied = true;
@@ -180,7 +183,6 @@ void ASCharacter::OnCharacterHealthChanged(class USHealthComponent* OwningHealth
 		GetMovementComponent()->StopMovementImmediately();
 		//移除胶囊体所有碰撞
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		//这后面就是播放死亡动画了
 	}
 }
 

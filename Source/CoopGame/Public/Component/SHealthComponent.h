@@ -30,8 +30,12 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	//当前生命值
-	UPROPERTY(Replicated,EditDefaultsOnly, BlueprintReadOnly, Category="HealthComponent")
+	UPROPERTY(ReplicatedUsing=OnRep_Health,EditDefaultsOnly, BlueprintReadOnly, Category="HealthComponent")
 	float Health;
+
+	UFUNCTION()
+	void OnRep_Health(float OldHealth);
+	
 	//默认最大生命值
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="HealthComponent")
 	float DefaultHealth;
@@ -42,7 +46,7 @@ protected:
 public:
 	//声明动态多播对象，生命值改变事件(BlueprintAssignable表示仅能用于Multicast委托)
 	UPROPERTY(BlueprintAssignable,Category="Events")
-	FOnHealthChangedSignature OnHealthChanged;
+	FOnHealthChangedSignature OnCompHealthChanged;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 };
