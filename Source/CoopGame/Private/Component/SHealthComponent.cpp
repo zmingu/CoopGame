@@ -59,3 +59,17 @@ void USHealthComponent::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 }
 
 
+void USHealthComponent::Heal(float HealAmount)
+{
+	//如果加血值为0，或者已经挂了，就返回
+	if (HealAmount<=0 || Health<=0)
+	{
+		return;
+	}
+	//加血后的生命值限制在0到默认值100之间
+	Health = FMath::Clamp(Health+HealAmount,0.0f,DefaultHealth);
+	//广播伤害值为负数则为加血
+	OnCompHealthChanged.Broadcast(this,Health,-HealAmount,nullptr,nullptr,nullptr);
+}
+
+

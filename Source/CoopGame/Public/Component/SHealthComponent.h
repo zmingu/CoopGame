@@ -49,4 +49,8 @@ public:
 	FOnHealthChangedSignature OnCompHealthChanged;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UFUNCTION(BlueprintCallable,Category="HealthComponent")
+	void Heal(float HealAmount);
+
 };
