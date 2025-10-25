@@ -3,6 +3,7 @@
 
 #include "Component/SHealthComponent.h"
 
+#include "SGameMode.h"
 #include "Net/UnrealNetwork.h"
 
 
@@ -13,6 +14,8 @@ USHealthComponent::USHealthComponent()
 
 	//开启组件的网络复制功能
 	SetIsReplicated(true);
+
+	bIsDead = false;//默认未死亡
 }
 
 
@@ -43,13 +46,22 @@ void USHealthComponent::OnRep_Health(float OldHealth)
 void USHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType,
                                             class AController* InstigatedBy, AActor* DamageCauser)
 {
-	if (Damage <= 0)return;
+	if (Damage <= 0 || bIsDead) return; //如果伤害值小于等于0，或者已经死亡，就返回
 	//更新生命值为受伤后的生命值
 	//限定受伤后的生命值在0-默认最大生命值之间，包括这两个数
 	Health = FMath::Clamp(Health-Damage,0.0f,DefaultHealth);
 	
 	//执行多播调用,作用是让蓝图里绑定了这个事件的节点都能被调用到 
 	OnCompHealthChanged.Broadcast(this,Health,Damage,DamageType,InstigatedBy,DamageCauser);
+	bIsDead = Health <= 0;
+	if (bIsDead)
+	{
+		ASGameMode* GM = Cast<ASGameMode>(GetWorld()->GetAuthGameMode());
+		if (GM)
+		{
+			GM->OnActorKilled.Broadcast(GetOwner(),DamageCauser,InstigatedBy);
+		}
+	}
 }
 
 void USHealthComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -70,6 +82,11 @@ void USHealthComponent::Heal(float HealAmount)
 	Health = FMath::Clamp(Health+HealAmount,0.0f,DefaultHealth);
 	//广播伤害值为负数则为加血
 	OnCompHealthChanged.Broadcast(this,Health,-HealAmount,nullptr,nullptr,nullptr);
+}
+
+float USHealthComponent::GetHealth() const
+{
+	return Health;
 }
 
 

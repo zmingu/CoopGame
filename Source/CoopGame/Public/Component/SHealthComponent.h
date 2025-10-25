@@ -53,4 +53,8 @@ public:
 	UFUNCTION(BlueprintCallable,Category="HealthComponent")
 	void Heal(float HealAmount);
 
+	float GetHealth() const;//用来获取Health生命值，Health生命值为protected较合理。
+
+	//声明是否死亡变量
+	bool bIsDead;
 };
