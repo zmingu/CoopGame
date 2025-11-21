@@ -93,4 +93,7 @@ public:
 	void OnCheckNearbyBots();
 	//伤害等级
 	int32 PowerLevel;
+protected:
+	FTimerHandle TimerHandle_RefreshPath;
+	void RefreshPath();
 };

@@ -11,6 +11,13 @@
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 
+//调试用的
+static int32 DebugTrackerBotDrawing = 0;
+FAutoConsoleVariableRef CVARDebugTrackerBotDrawing(
+	TEXT("COOP.DebugTrackerBot"),
+	DebugTrackerBotDrawing,
+	TEXT("Draw Debug Lines for TrackerBot"),
+	ECVF_Cheat);
 // Sets default values
 ASTrackerBot::ASTrackerBot()
 {
@@ -35,8 +42,9 @@ ASTrackerBot::ASTrackerBot()
 	MovementForce = 1000;//作用力大小
 	RequiredDistanceToTarget = 100;//判定到达目标的距离
 	
-	ExplosionRadius = 350;//爆炸范围
-	ExplosionDamage = 60;//爆炸伤害
+	//修改伤害和范围
+	ExplosionDamage = 60;
+	ExplosionRadius = 350;
 	
 	
 }
@@ -105,19 +113,65 @@ void ASTrackerBot::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 FVector ASTrackerBot::GetNextPathPoint()
 {
-	//拿到0号玩家对象
-	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
-	//立即找到下一个路径（上下文，路径开始点，目标Actor）
-	UNavigationPath* NavPath = UNavigationSystemV1::FindPathToActorSynchronously(this,GetActorLocation(),PlayerPawn);
-	//如果路径点数量大于1返回下一个位置点
-	if (NavPath->PathPoints.Num()>1)
+	//
+	AActor* BestTarget = nullptr;
+	float NearestTargetDistance = FLT_MAX;
+
+	//使用Pawn迭代器，拿到每一个Pawn的生命值组件，比较他们的队伍编号，找到生命值大于0的非友军，设置离自己最近的敌人的距离。
+	for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; ++It)
 	{
-		//返回路径点数组中的第1个位置点
-		return NavPath->PathPoints[1];
+		APawn* TestPawn = It->Get();
+		if (TestPawn == nullptr || USHealthComponent::IsFriendly(TestPawn, this))
+		{
+			continue;
+		}
+
+		USHealthComponent* TestPawnHealthComp = Cast<USHealthComponent>(TestPawn->GetComponentByClass(USHealthComponent::StaticClass()));
+		if (TestPawnHealthComp && TestPawnHealthComp->GetHealth() > 0.0f)
+		{
+			float Distance = (TestPawn->GetActorLocation() - GetActorLocation()).Size();
+
+			if (Distance < NearestTargetDistance)
+			{
+				BestTarget = TestPawn;
+				NearestTargetDistance = Distance;
+			}
+		}
+	}
+	// //拿到0号玩家对象
+	// APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	// //立即找到下一个路径（上下文，路径开始点，目标Actor）
+	// UNavigationPath* NavPath = UNavigationSystemV1::FindPathToActorSynchronously(this,GetActorLocation(),PlayerPawn);
+	// //如果路径点数量大于1返回下一个位置点
+	// if (NavPath->PathPoints.Num()>1)
+	// {
+	// 	//返回路径点数组中的第1个位置点
+	// 	return NavPath->PathPoints[1];
+	// }
+	//
+	// //否则返回初始位置
+	// return GetActorLocation();
+	if (BestTarget)
+	{
+		UNavigationPath* NavPath = UNavigationSystemV1::FindPathToActorSynchronously(this, GetActorLocation(), BestTarget);
+
+		GetWorldTimerManager().ClearTimer(TimerHandle_RefreshPath);
+		GetWorldTimerManager().SetTimer(TimerHandle_RefreshPath, this, &ASTrackerBot::RefreshPath , 5.0f, false);
+
+		if (NavPath && NavPath->PathPoints.Num() > 1)
+		{
+			// 返回下一个点
+			return NavPath->PathPoints[1];
+		}
 	}
 
-	//否则返回初始位置
+	// 寻路失败
 	return GetActorLocation();
+}
+
+void ASTrackerBot::RefreshPath()
+{
+	NextPathPoint = GetNextPathPoint();
 }
 
 void ASTrackerBot::HandleTakeDamage(class USHealthComponent* OwningHealthComp, float Health, float HealthDelta,

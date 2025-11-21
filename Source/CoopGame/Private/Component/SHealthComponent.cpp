@@ -16,6 +16,9 @@ USHealthComponent::USHealthComponent()
 	SetIsReplicated(true);
 
 	bIsDead = false;//默认未死亡
+
+	//默认队伍编号为255
+	TeamNum = 255;
 }
 
 
@@ -47,6 +50,13 @@ void USHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, 
                                             class AController* InstigatedBy, AActor* DamageCauser)
 {
 	if (Damage <= 0 || bIsDead) return; //如果伤害值小于等于0，或者已经死亡，就返回
+
+	//在伤害发生时进行一个友军判断
+	if (DamageCauser != DamagedActor && IsFriendly(DamagedActor, DamageCauser))
+	{
+		return;
+	}
+	
 	//更新生命值为受伤后的生命值
 	//限定受伤后的生命值在0-默认最大生命值之间，包括这两个数
 	Health = FMath::Clamp(Health-Damage,0.0f,DefaultHealth);
@@ -87,6 +97,26 @@ void USHealthComponent::Heal(float HealAmount)
 float USHealthComponent::GetHealth() const
 {
 	return Health;
+}
+
+bool USHealthComponent::IsFriendly(AActor* ActorA, AActor* ActorB)
+{
+	if (ActorA == nullptr || ActorB == nullptr)
+	{
+		return true;
+	}
+
+	USHealthComponent* HealthCompA = Cast<USHealthComponent>(ActorA->GetComponentByClass(USHealthComponent::StaticClass()));
+	USHealthComponent* HealthCompB = Cast<USHealthComponent>(ActorB->GetComponentByClass(USHealthComponent::StaticClass()));
+
+	//没有生命组件的物体也算友军，不伤害
+	if (HealthCompA == nullptr || HealthCompB == nullptr)
+	{
+		return true;
+	}
+
+	//返回两个Actor的队伍编号是否相等
+	return HealthCompA->TeamNum == HealthCompB->TeamNum;
 }
 
 

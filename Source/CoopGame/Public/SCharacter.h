@@ -79,7 +79,9 @@ public:
 	float ZoomInterpSpeed;
 
 	//角色开枪函数
+	UFUNCTION(BlueprintCallable,Category="Player")
 	void ToFire();
+	UFUNCTION(BlueprintCallable,Category="Player")
 	//角色停止开枪函数
 	void StopFire();
 

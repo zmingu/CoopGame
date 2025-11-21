@@ -31,6 +31,9 @@ ASWeapon::ASWeapon()
 	//网络参数，改善延迟
 	NetUpdateFrequency = 66;
 	MinNetUpdateFrequency = 33;
+
+	//
+	BulletSpread = 2.0f;
 }
 
 // Called when the game starts or when spawned
@@ -52,6 +55,10 @@ void ASWeapon::Tick(float DeltaTime)
 
 void ASWeapon::Fire()
 {
+	//如果是服务端上的角色调用Fire()函数到这里，就让服务器角色调用ServerFire();
+	//也就是当我们操作客户端角色，按下左键调用开火函数的时候，会先执行客户端角色的开火函数，然后再调用服务器端角色的开火函数
+	if (GetLocalRole() < ROLE_Authority) ServerFire();
+	
 	AActor* WeaponOwner= GetOwner();
 	if (WeaponOwner)
 	{
@@ -63,8 +70,12 @@ void ASWeapon::Fire()
 		//弹道起点 = 玩家摄像头位置
 		Cast<APawn>(WeaponOwner)->GetActorEyesViewPoint(EyeLocation,EyeRotator);
 		//弹道终点 = 起点位置 + （方向 * 距离）
-		FVector TraceEnd = EyeLocation + (EyeRotator.Vector() * 1000);
-
+		// FVector TraceEnd = EyeLocation + (EyeRotator.Vector() * 1000);
+		// 子弹散射角，以射线为中心的锥形随机向量
+		float HalfRad = FMath::DegreesToRadians(BulletSpread);
+		FVector ShotDirection = EyeRotator.Vector();
+		ShotDirection = FMath::VRandCone(ShotDirection, HalfRad, HalfRad);
+		FVector TraceEnd = EyeLocation + (ShotDirection * 10000);
 		/*
 		 *打击和碰撞
 		 */
@@ -102,10 +113,11 @@ void ASWeapon::Fire()
 			HitScanTrace.TraceTo = TraceEnd;
 			HitScanTrace.Hit = Hit;
 		}
+
+		
+		
 	}
-	//如果是服务端上的角色调用Fire()函数到这里，就让服务器角色调用ServerFire();
-	//也就是当我们操作客户端角色，按下左键调用开火函数的时候，会先执行客户端角色的开火函数，然后再调用服务器端角色的开火函数
-	if (GetLocalRole() < ROLE_Authority) ServerFire();
+	
 }
 
 void ASWeapon::PlayFireEffects(FVector TraceEnd)

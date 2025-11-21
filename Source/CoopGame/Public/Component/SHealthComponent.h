@@ -57,4 +57,12 @@ public:
 
 	//声明是否死亡变量
 	bool bIsDead;
+
+	//队伍编号
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HealthComponent")
+	uint8 TeamNum;
+
+	//判断两个Actor是否为友军
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "HealthComponent")
+	static bool IsFriendly(AActor* ActorA, AActor* ActorB);
 };

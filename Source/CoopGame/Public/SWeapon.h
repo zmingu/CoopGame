@@ -117,4 +117,8 @@ public:
 
 	//重写同步函数
 	virtual void GetLifetimeReplicatedProps( TArray< class FLifetimeProperty > & OutLifetimeProps ) const override;
+
+	/* 子弹散射角度 */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon", meta = (ClampMin=0.0f))
+	float BulletSpread;
 };
